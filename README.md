@@ -6,40 +6,54 @@ Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, 
 
 ---
 
-## Project StructureBaltimore_Sports_Scraper/
+## Project Structure
 
-├── backend/
-│ ├── cmd/server/main.go
-│ ├── internal/
-│ │ ├── api/handlers.go # REST endpoints
-│ │ ├── api/sse.go # Server-Sent Events stream
-│ │ ├── db/postgres.go # pgxpool + auto-migrations
-│ │ ├── models/article.go # Shared Article struct
-│ │ ├── redis/streams.go # Publish / Subscribe
-│ │ └── scraper/
-│ │ ├── manager.go # Runs all scrapers concurrently
-│ │ ├── rss.go # ESPN, MLB, NFL, Baltimore Sun
-│ │ ├── gdelt.go # GDELT DOC 2.0 API (free, no key)
-│ │ ├── reddit.go # Stub (activate when ready)
-│ │ └── bluesky.go # Stub (activate when ready)
-│ └── Dockerfile
-├── frontend/
-│ └── src/
-│ ├── routes/
-│ │ ├── +layout.svelte # Topbar + live indicator
-│ │ ├── +page.svelte # Article grid
-│ │ └── +page.server.ts # SSR data load
-│ └── lib/
-│ ├── stores/articles.ts
-│ └── components/
-│ ├── ArticleCard.svelte
-│ ├── SearchBar.svelte
-│ └── LiveFeed.svelte
-├── docker-compose.yml
-├── Makefile
-├── fly.toml
-└── setup.sh
-
+    Baltimore_Sports_Scraper/
+    ├── backend/
+    │   ├── cmd/server/main.go
+    │   ├── internal/
+    │   │   ├── api/
+    │   │   │   ├── handlers.go        REST endpoints
+    │   │   │   └── sse.go             Server-Sent Events stream
+    │   │   ├── db/
+    │   │   │   └── postgres.go        pgxpool + auto-migrations
+    │   │   ├── models/
+    │   │   │   └── article.go         Shared Article struct
+    │   │   ├── redis/
+    │   │   │   └── streams.go         Publish / Subscribe
+    │   │   └── scraper/
+    │   │       ├── manager.go         Runs all scrapers concurrently
+    │   │       ├── rss.go             ESPN, MLB, NFL, Baltimore Sun
+    │   │       ├── gdelt.go           GDELT DOC 2.0 API (free, no key)
+    │   │       ├── reddit.go          Stub (activate when ready)
+    │   │       └── bluesky.go         Stub (activate when ready)
+    │   ├── go.mod
+    │   └── Dockerfile
+    ├── frontend/
+    │   ├── src/
+    │   │   ├── routes/
+    │   │   │   ├── +layout.svelte     Topbar + live indicator
+    │   │   │   ├── +layout.ts         SSR config
+    │   │   │   ├── +page.svelte       Article grid
+    │   │   │   ├── +page.server.ts    SSR data load
+    │   │   │   └── +error.svelte      Error page
+    │   │   └── lib/
+    │   │       ├── stores/
+    │   │       │   └── articles.ts    Svelte stores + derived filters
+    │   │       └── components/
+    │   │           ├── ArticleCard.svelte
+    │   │           ├── SearchBar.svelte
+    │   │           └── LiveFeed.svelte  Headless SSE client
+    │   ├── static/favicon.svg
+    │   ├── package.json
+    │   ├── svelte.config.js
+    │   ├── tsconfig.json
+    │   └── vite.config.ts
+    ├── docker-compose.yml
+    ├── fly.toml
+    ├── Makefile
+    ├── setup.sh
+    └── .env.example
 
 ---
 
@@ -47,12 +61,10 @@ Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, 
 
 Requires Docker Desktop.
 
-```bash
-git clone https://github.com/kduvur100/Baltimore_Sports_Scraper.git
-cd Baltimore_Sports_Scraper
-cp .env.example .env
-docker-compose up --build
-```
+    git clone https://github.com/kduvur100/Baltimore_Sports_Scraper.git
+    cd Baltimore_Sports_Scraper
+    cp .env.example .env
+    docker-compose up --build
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080
@@ -64,11 +76,9 @@ docker-compose up --build
 
 Prerequisites: Go 1.22+, Node 20+, PostgreSQL 16, Redis 7
 
-```bash
-bash setup.sh   # installs deps, copies .env
-nano .env       # fill in your DB/Redis URLs
-make dev        # starts backend :8080 + frontend :5173
-```
+    bash setup.sh   # installs deps, copies .env
+    nano .env       # fill in your DB/Redis URLs
+    make dev        # starts backend :8080 + frontend :5173
 
 ---
 
@@ -76,51 +86,45 @@ make dev        # starts backend :8080 + frontend :5173
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/api/articles` | List articles (paginated) |
-| GET | `/api/articles/{id}` | Single article |
-| GET | `/api/search?q=lamar` | Full-text search |
-| GET | `/api/stream` | SSE live feed |
+| GET | /health | Health check |
+| GET | /api/articles | List articles (paginated) |
+| GET | /api/articles/{id} | Single article |
+| GET | /api/search?q=lamar | Full-text search |
+| GET | /api/stream | SSE live feed |
 
-Query params for `/api/articles`: `team=orioles|ravens`, `source=rss|gdelt`, `limit=20`, `offset=0`
+Query params for /api/articles: team=orioles|ravens, source=rss|gdelt, limit=20, offset=0
 
 ---
 
 ## Environment Variables
 
-```env
-PORT=8080
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/baltimore_sports?sslmode=disable
-REDIS_URL=redis://localhost:6379
-FRONTEND_URL=http://localhost:5173
+    PORT=8080
+    DATABASE_URL=postgres://postgres:postgres@localhost:5432/baltimore_sports?sslmode=disable
+    REDIS_URL=redis://localhost:6379
+    FRONTEND_URL=http://localhost:5173
 
-# Production (set in Vercel dashboard):
-# API_URL=https://baltimore-sports-backend.fly.dev
-```
+    # Production (set in Vercel dashboard):
+    # API_URL=https://baltimore-sports-backend.fly.dev
 
 ---
 
 ## Deployment
 
-### Backend → Fly.io
+### Backend to Fly.io
 
-```bash
-fly auth login
-fly launch --no-deploy
-fly secrets set DATABASE_URL="your-prod-postgres-url"
-fly secrets set REDIS_URL="your-prod-redis-url"
-fly secrets set FRONTEND_URL="https://your-app.vercel.app"
-fly deploy
-```
+    fly auth login
+    fly launch --no-deploy
+    fly secrets set DATABASE_URL="your-prod-postgres-url"
+    fly secrets set REDIS_URL="your-prod-redis-url"
+    fly secrets set FRONTEND_URL="https://your-app.vercel.app"
+    fly deploy
 
-### Frontend → Vercel
+### Frontend to Vercel
 
-```bash
-cd frontend
-npx vercel --prod
-# Then in Vercel dashboard → Environment Variables:
-# API_URL = https://baltimore-sports-backend.fly.dev
-```
+    cd frontend
+    npx vercel --prod
+    # Then in Vercel dashboard > Environment Variables:
+    # API_URL = https://baltimore-sports-backend.fly.dev
 
 ---
 
@@ -128,27 +132,25 @@ npx vercel --prod
 
 **Reddit:**
 1. Create app at https://www.reddit.com/prefs/apps
-2. Add to `.env`: `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USER_AGENT`
-3. Uncomment `NewRedditScraper()` in `backend/internal/scraper/manager.go`
+2. Add to .env: REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
+3. Uncomment NewRedditScraper() in backend/internal/scraper/manager.go
 
 **Bluesky:**
-1. Create app password at https://bsky.app → Settings → App Passwords
-2. Add to `.env`: `BLUESKY_IDENTIFIER`, `BLUESKY_APP_PASSWORD`
-3. Uncomment `NewBlueskyScraper()` in `backend/internal/scraper/manager.go`
+1. Create app password at https://bsky.app > Settings > App Passwords
+2. Add to .env: BLUESKY_IDENTIFIER, BLUESKY_APP_PASSWORD
+3. Uncomment NewBlueskyScraper() in backend/internal/scraper/manager.go
 
 ---
 
 ## Makefile Commands
 
-```bash
-make setup        # Install all deps + copy .env
-make dev          # Run backend + frontend concurrently
-make docker-up    # Start everything in Docker
-make docker-down  # Stop Docker + remove volumes
-make tidy         # go mod tidy
-make check        # go vet + svelte-check
-make clean        # Remove build artifacts
-```
+    make setup        # Install all deps + copy .env
+    make dev          # Run backend + frontend concurrently
+    make docker-up    # Start everything in Docker
+    make docker-down  # Stop Docker + remove volumes
+    make tidy         # go mod tidy
+    make check        # go vet + svelte-check
+    make clean        # Remove build artifacts
 
 ---
 
@@ -159,15 +161,15 @@ make clean        # Remove build artifacts
 3. Each new article is published to a Redis Stream
 4. The SSE endpoint subscribes to that stream and pushes JSON to browsers
 5. SvelteKit frontend receives events and prepends them to the article store live
-6. Articles are SSR-seeded from the database on first load for instant paint
+6. Articles are SSR-seeded from the database on first load for instant first paint
 
 ---
 
 ## Cleanup
 
-```bash
-docker-compose down -v    # stop containers + wipe DB data
-make clean                # remove build artifacts
-rm -rf frontend/node_modules
-go clean -cache
-```
+    docker-compose down -v    # stop containers + wipe DB data
+    make clean                # remove build artifacts
+    rm -rf frontend/node_modules
+    go clean -cache
+READMEEOF
+echo "✅ README.md"
