@@ -1,170 +1,172 @@
-# Baltimore Sports Hub 
+# Baltimore Sports Hub 🦅⚾
 
-A real-time Baltimore Orioles & Ravens news aggregator built with a modern, hireable stack. Articles are scraped from multiple sources concurrently, stored in PostgreSQL, and pushed live to connected browsers via Server-Sent Events — no refresh needed.
+Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, NFL, and Baltimore Sun RSS feeds and pushes live updates to the browser via Server-Sent Events.
 
----
-
-## Stack
-
-| Layer | Technology | Why |
-|---|---|---|
-| Frontend | SvelteKit (SSR) | SSR for SEO + instant hydration |
-| Backend | Go | Goroutines make concurrent scraping trivial |
-| Real-time | Redis Streams + SSE | New articles pushed to browsers instantly |
-| Database | PostgreSQL + Supabase | Reliable, structured, real-time-ready |
-| Scraping | Go HTTP + gofeed | Fast, native, zero overhead |
-| Social | Bluesky AT Protocol + Reddit | Both fully free APIs |
-| News | GDELT Project API | Academic-grade, thousands of outlets, no key required |
-| Hosting | Fly.io (backend) + Vercel (frontend) | Both have generous free tiers |
+**Stack:** Go (chi router) · PostgreSQL · Redis Streams · SvelteKit · Vercel · Fly.io
 
 ---
 
-## Data Sources
+## Project StructureBaltimore_Sports_Scraper/
+├── backend/
+│ ├── cmd/server/main.go
+│ ├── internal/
+│ │ ├── api/handlers.go # REST endpoints
+│ │ ├── api/sse.go # Server-Sent Events stream
+│ │ ├── db/postgres.go # pgxpool + auto-migrations
+│ │ ├── models/article.go # Shared Article struct
+│ │ ├── redis/streams.go # Publish / Subscribe
+│ │ └── scraper/
+│ │ ├── manager.go # Runs all scrapers concurrently
+│ │ ├── rss.go # ESPN, MLB, NFL, Baltimore Sun
+│ │ ├── gdelt.go # GDELT DOC 2.0 API (free, no key)
+│ │ ├── reddit.go # Stub (activate when ready)
+│ │ └── bluesky.go # Stub (activate when ready)
+│ └── Dockerfile
+├── frontend/
+│ └── src/
+│ ├── routes/
+│ │ ├── +layout.svelte # Topbar + live indicator
+│ │ ├── +page.svelte # Article grid
+│ │ └── +page.server.ts # SSR data load
+│ └── lib/
+│ ├── stores/articles.ts
+│ └── components/
+│ ├── ArticleCard.svelte
+│ ├── SearchBar.svelte
+│ └── LiveFeed.svelte
+├── docker-compose.yml
+├── Makefile
+├── fly.toml
+└── setup.sh
 
-| Source | What you get | Status |
-|---|---|---|
-| **GDELT API** | Thousands of news articles with sentiment scores | ✅ Active |
-| **ESPN RSS** | Official game news, injury reports | ✅ Active |
-| **MLB.com RSS** | Official Orioles news | ✅ Active |
-| **NFL.com RSS** | Official Ravens news | ✅ Active |
-| **Baltimore Sun RSS** | Local coverage for both teams | ✅ Active |
-| **Reddit API** | r/orioles, r/ravens posts & comments | 🔧 Stub (needs credentials) |
-| **Bluesky AT Protocol** | Public posts about Orioles/Ravens | 🔧 Stub (needs credentials) |
-| **YouTube Data API v3** | Orioles/Ravens video content | 🔧 Planned |
-
----
-
-## Project Structure
-
-```
-baltimore-sports-hub/
-├── backend/                        # Go microservice
-│   ├── cmd/server/main.go          # Entry point, router, graceful shutdown
-│   ├── internal/
-│   │   ├── api/
-│   │   │   ├── handlers.go         # REST endpoints (articles, search)
-│   │   │   └── sse.go              # Server-Sent Events stream
-│   │   ├── db/postgres.go          # Connection pool + auto-migrations
-│   │   ├── models/article.go       # Unified Article model
-│   │   ├── redis/streams.go        # Publish/subscribe via Redis Streams
-│   │   └── scraper/
-│   │       ├── manager.go          # Concurrent scraper orchestrator
-│   │       ├── rss.go              # ESPN, MLB, NFL, Baltimore Sun feeds
-│   │       ├── gdelt.go            # GDELT DOC 2.0 API
-│   │       ├── reddit.go           # Reddit API (stub)
-│   │       └── bluesky.go          # Bluesky AT Protocol (stub)
-│   ├── Dockerfile
-│   └── go.mod
-├── frontend/                       # SvelteKit app
-│   ├── src/
-│   │   ├── routes/
-│   │   │   ├── +layout.svelte      # App shell, live indicator, SSE mount
-│   │   │   ├── +page.server.ts     # SSR article load
-│   │   │   └── +page.svelte        # Main feed page
-│   │   └── lib/
-│   │       ├── components/
-│   │       │   ├── ArticleCard.svelte
-│   │       │   ├── SearchBar.svelte
-│   │       │   └── LiveFeed.svelte  # Headless SSE subscriber
-│   │       └── stores/articles.ts  # Svelte stores + derived filters
-│   ├── svelte.config.js
-│   └── package.json
-├── docker-compose.yml              # Local dev stack (Postgres + Redis + backend + frontend)
-├── .env.example                    # All required environment variables
-└── ROADMAP.md
-```
 
 ---
 
-## Quick Start
+## Quick Start (Docker)
 
-### Prerequisites
-- [Docker & Docker Compose](https://docs.docker.com/get-docker/)
-- [Go 1.22+](https://go.dev/dl/) (for local backend dev)
-- [Node 20+](https://nodejs.org/) (for local frontend dev)
-
-### 1. Clone & configure
+Requires Docker Desktop.
 
 ```bash
-git clone https://github.com/kaushikduvur/Baltimore_Sports_Scraper.git
+git clone https://github.com/kduvur100/Baltimore_Sports_Scraper.git
 cd Baltimore_Sports_Scraper
 cp .env.example .env
-```
-
-### 2. Start everything with Docker
-
-```bash
 docker-compose up --build
 ```
 
-This starts PostgreSQL, Redis, the Go backend, and the SvelteKit frontend.
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8080
+- Health: http://localhost:8080/health
 
-- Frontend → http://localhost:5173
-- Backend API → http://localhost:8080
-- Health check → http://localhost:8080/health
+---
 
-### 3. Local development (without Docker)
+## Local Dev (without Docker)
 
-**Backend:**
+Prerequisites: Go 1.22+, Node 20+, PostgreSQL 16, Redis 7
+
 ```bash
-cd backend
-go mod tidy
-go run ./cmd/server
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
+bash setup.sh   # installs deps, copies .env
+nano .env       # fill in your DB/Redis URLs
+make dev        # starts backend :8080 + frontend :5173
 ```
 
 ---
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Health check |
-| `GET` | `/api/articles` | List articles (`?team=orioles&source=rss&limit=20&offset=0`) |
-| `GET` | `/api/articles/:id` | Single article by ID |
-| `GET` | `/api/search` | Full-text search (`?q=lamar+jackson&team=ravens`) |
-| `GET` | `/api/stream` | SSE live stream (`?team=orioles`) |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| GET | `/api/articles` | List articles (paginated) |
+| GET | `/api/articles/{id}` | Single article |
+| GET | `/api/search?q=lamar` | Full-text search |
+| GET | `/api/stream` | SSE live feed |
+
+Query params for `/api/articles`: `team=orioles|ravens`, `source=rss|gdelt`, `limit=20`, `offset=0`
+
+---
+
+## Environment Variables
+
+```env
+PORT=8080
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/baltimore_sports?sslmode=disable
+REDIS_URL=redis://localhost:6379
+FRONTEND_URL=http://localhost:5173
+
+# Production (set in Vercel dashboard):
+# API_URL=https://baltimore-sports-backend.fly.dev
+```
 
 ---
 
 ## Deployment
 
-**Backend → Fly.io:**
+### Backend → Fly.io
+
 ```bash
-cd backend
-flyctl launch
-flyctl deploy
+fly auth login
+fly launch --no-deploy
+fly secrets set DATABASE_URL="your-prod-postgres-url"
+fly secrets set REDIS_URL="your-prod-redis-url"
+fly secrets set FRONTEND_URL="https://your-app.vercel.app"
+fly deploy
 ```
 
-**Frontend → Vercel:**
+### Frontend → Vercel
+
 ```bash
 cd frontend
-vercel deploy
+npx vercel --prod
+# Then in Vercel dashboard → Environment Variables:
+# API_URL = https://baltimore-sports-backend.fly.dev
 ```
 
-Set `VITE_API_URL` and `API_URL` in Vercel's environment variables to your Fly.io backend URL.
+---
+
+## Enabling Optional Scrapers
+
+**Reddit:**
+1. Create app at https://www.reddit.com/prefs/apps
+2. Add to `.env`: `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USER_AGENT`
+3. Uncomment `NewRedditScraper()` in `backend/internal/scraper/manager.go`
+
+**Bluesky:**
+1. Create app password at https://bsky.app → Settings → App Passwords
+2. Add to `.env`: `BLUESKY_IDENTIFIER`, `BLUESKY_APP_PASSWORD`
+3. Uncomment `NewBlueskyScraper()` in `backend/internal/scraper/manager.go`
 
 ---
 
-## Adding More Data Sources
+## Makefile Commands
 
-1. Create a new file in `backend/internal/scraper/` implementing the `Scraper` interface:
-   ```go
-   type Scraper interface {
-       Name() string
-       Fetch(ctx context.Context) ([]models.Article, error)
-       Interval() time.Duration
-   }
-   ```
-2. Register it in `manager.go`'s `NewManager()` scrapers slice.
-3. That's it — the manager handles concurrent scheduling, deduplication, and Redis publishing automatically.
+```bash
+make setup        # Install all deps + copy .env
+make dev          # Run backend + frontend concurrently
+make docker-up    # Start everything in Docker
+make docker-down  # Stop Docker + remove volumes
+make tidy         # go mod tidy
+make check        # go vet + svelte-check
+make clean        # Remove build artifacts
+```
 
 ---
 
+## How It Works
 
+1. Scrapers run as goroutines on a ticker (RSS every 10 min, GDELT every 15 min)
+2. New articles are upserted into PostgreSQL — deduplicated by URL
+3. Each new article is published to a Redis Stream
+4. The SSE endpoint subscribes to that stream and pushes JSON to browsers
+5. SvelteKit frontend receives events and prepends them to the article store live
+6. Articles are SSR-seeded from the database on first load for instant paint
+
+---
+
+## Cleanup
+
+```bash
+docker-compose down -v    # stop containers + wipe DB data
+make clean                # remove build artifacts
+rm -rf frontend/node_modules
+go clean -cache
+```
