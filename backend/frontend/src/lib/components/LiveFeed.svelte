@@ -7,7 +7,14 @@
 	let es: EventSource | null = null;
 	let retryTimer: ReturnType<typeof setTimeout>;
 
+	function disconnect() {
+		es?.close();
+		es = null;
+		clearTimeout(retryTimer);
+	}
+
 	function connect() {
+		disconnect();
 		const team = $teamFilter;
 		const url = `${API}/api/stream${team ? `?team=${team}` : ''}`;
 		es = new EventSource(url);
@@ -17,11 +24,13 @@
 		});
 		es.onerror = () => {
 			isLive.set(false);
-			es?.close();
+			disconnect();
 			retryTimer = setTimeout(connect, 5000);
 		};
 	}
 
+	$: $teamFilter, connect();
+
 	onMount(connect);
-	onDestroy(() => { es?.close(); clearTimeout(retryTimer); isLive.set(false); });
+	onDestroy(() => { disconnect(); isLive.set(false); });
 </script>
