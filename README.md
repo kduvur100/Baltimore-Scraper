@@ -172,4 +172,3 @@ Query params for /api/articles: team=orioles|ravens, source=rss|gdelt, limit=20,
     rm -rf frontend/node_modules
     go clean -cache
 READMEEOF
-echo "✅ README.md"
