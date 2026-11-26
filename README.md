@@ -1,4 +1,4 @@
-# Baltimore Sports Hub 🦅⚾
+# Baltimore Sports Hub 
 
 Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, NFL, and Baltimore Sun RSS feeds and pushes live updates to the browser via Server-Sent Events.
 
