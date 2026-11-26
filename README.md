@@ -7,6 +7,7 @@ Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, 
 ---
 
 ## Project StructureBaltimore_Sports_Scraper/
+
 ├── backend/
 │ ├── cmd/server/main.go
 │ ├── internal/
