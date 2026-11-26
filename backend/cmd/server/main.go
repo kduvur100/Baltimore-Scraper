@@ -14,16 +14,15 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
-	"github.com/kaushikduvur/baltimore-sports-scraper/backend/internal/api"
-	"github.com/kaushikduvur/baltimore-sports-scraper/backend/internal/db"
-	"github.com/kaushikduvur/baltimore-sports-scraper/backend/internal/redis"
-	"github.com/kaushikduvur/baltimore-sports-scraper/backend/internal/scraper"
+	"github.com/kduvur100/baltimore-sports-scraper/internal/api"
+	"github.com/kduvur100/baltimore-sports-scraper/internal/db"
+	redisClient "github.com/kduvur100/baltimore-sports-scraper/internal/redis"
+	"github.com/kduvur100/baltimore-sports-scraper/internal/scraper"
 )
 
 func main() {
-	// Load .env
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+		log.Println("No .env file found, reading environment variables")
 	}
 
 	port := os.Getenv("PORT")
@@ -31,74 +30,69 @@ func main() {
 		port = "8080"
 	}
 
-	// Initialize DB
 	pool, err := db.NewPool(os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("DB connect: %v", err)
 	}
 	defer pool.Close()
 
 	if err := db.RunMigrations(pool); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		log.Fatalf("DB migrations: %v", err)
 	}
 
-	// Initialize Redis
-	rdb := redis.NewClient(os.Getenv("REDIS_URL"))
+	rdb := redisClient.NewClient(os.Getenv("REDIS_URL"))
 	defer rdb.Close()
 
-	// Initialize scraper manager — runs all scrapers concurrently
-	sm := scraper.NewManager(pool, rdb)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go sm.Start(ctx)
+	go scraper.NewManager(pool, rdb).Start(ctx)
 
-	// Initialize HTTP router
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{os.Getenv("FRONTEND_URL"), "http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Content-Type"},
-		AllowCredentials: false,
+		AllowedOrigins: []string{frontendURL, "http://localhost:5173"},
+		AllowedMethods: []string{"GET", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Content-Type"},
 	}))
 
-	// Register API routes
 	h := api.NewHandler(pool, rdb)
 	r.Get("/health", h.Health)
 	r.Get("/api/articles", h.GetArticles)
 	r.Get("/api/articles/{id}", h.GetArticle)
 	r.Get("/api/search", h.Search)
-	r.Get("/api/stream", h.SSEStream) // Server-Sent Events
+	r.Get("/api/stream", h.SSEStream)
 
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 0, // SSE connections stay open
+		WriteTimeout: 0,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Server starting on port %s", port)
+		log.Printf("Server listening on :%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			log.Fatalf("Server: %v", err)
 		}
 	}()
 
 	<-quit
-	log.Println("Shutting down server...")
+	log.Println("Shutting down…")
 	cancel()
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer shutdownCancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
-	}
-	log.Println("Server exited cleanly")
+	sdCtx, sdCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer sdCancel()
+	_ = srv.Shutdown(sdCtx)
+	log.Println("Done.")
 }
