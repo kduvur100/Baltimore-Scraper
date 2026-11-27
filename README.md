@@ -4,56 +4,51 @@ Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, 
 
 **Stack:** Go (chi router) · PostgreSQL · Redis Streams · SvelteKit · Vercel · Fly.io
 
+<!-- Screenshot -->
+<!-- ![Baltimore Sports Hub](screenshot.png) -->
+
 ---
 
-## Project Structure
+## Live Demo
 
-    Baltimore_Sports_Scraper/
-    ├── backend/
-    │   ├── cmd/server/main.go
-    │   ├── internal/
-    │   │   ├── api/
-    │   │   │   ├── handlers.go        REST endpoints
-    │   │   │   └── sse.go             Server-Sent Events stream
-    │   │   ├── db/
-    │   │   │   └── postgres.go        pgxpool + auto-migrations
-    │   │   ├── models/
-    │   │   │   └── article.go         Shared Article struct
-    │   │   ├── redis/
-    │   │   │   └── streams.go         Publish / Subscribe
-    │   │   └── scraper/
-    │   │       ├── manager.go         Runs all scrapers concurrently
-    │   │       ├── rss.go             ESPN, MLB, NFL, Baltimore Sun
-    │   │       ├── gdelt.go           GDELT DOC 2.0 API (free, no key)
-    │   │       ├── reddit.go          Stub (activate when ready)
-    │   │       └── bluesky.go         Stub (activate when ready)
-    │   ├── go.mod
-    │   └── Dockerfile
-    ├── frontend/
-    │   ├── src/
-    │   │   ├── routes/
-    │   │   │   ├── +layout.svelte     Topbar + live indicator
-    │   │   │   ├── +layout.ts         SSR config
-    │   │   │   ├── +page.svelte       Article grid
-    │   │   │   ├── +page.server.ts    SSR data load
-    │   │   │   └── +error.svelte      Error page
-    │   │   └── lib/
-    │   │       ├── stores/
-    │   │       │   └── articles.ts    Svelte stores + derived filters
-    │   │       └── components/
-    │   │           ├── ArticleCard.svelte
-    │   │           ├── SearchBar.svelte
-    │   │           └── LiveFeed.svelte  Headless SSE client
-    │   ├── static/favicon.svg
-    │   ├── package.json
-    │   ├── svelte.config.js
-    │   ├── tsconfig.json
-    │   └── vite.config.ts
-    ├── docker-compose.yml
-    ├── fly.toml
-    ├── Makefile
-    ├── setup.sh
-    └── .env.example
+<!-- Add Vercel URL when deployed -->
+<!-- https://your-app.vercel.app -->
+
+---
+
+## Project StructureBaltimore_Sports_Scraper/
+├── backend/
+│ ├── cmd/server/main.go
+│ ├── internal/
+│ │ ├── api/handlers.go # REST endpoints
+│ │ ├── api/sse.go # Server-Sent Events stream
+│ │ ├── db/postgres.go # pgxpool + auto-migrations
+│ │ ├── models/article.go # Shared Article struct
+│ │ ├── redis/streams.go # Publish / Subscribe
+│ │ └── scraper/
+│ │ ├── manager.go # Runs all scrapers concurrently
+│ │ ├── rss.go # ESPN, MLB, NFL, Baltimore Sun
+│ │ ├── gdelt.go # GDELT DOC 2.0 API (free, no key)
+│ │ ├── reddit.go # Stub (activate when ready)
+│ │ └── bluesky.go # Stub (activate when ready)
+│ └── Dockerfile
+├── frontend/
+│ └── src/
+│ ├── routes/
+│ │ ├── +layout.svelte # Topbar + live indicator
+│ │ ├── +page.svelte # Article grid
+│ │ └── +page.server.ts # SSR data load
+│ └── lib/
+│ ├── stores/articles.ts
+│ └── components/
+│ ├── ArticleCard.svelte
+│ ├── SearchBar.svelte
+│ └── LiveFeed.svelte
+├── docker-compose.yml
+├── Makefile
+├── fly.toml
+└── setup.sh
+
 
 ---
 
@@ -61,10 +56,12 @@ Real-time Baltimore Orioles & Ravens news aggregator. Scrapes GDELT, ESPN, MLB, 
 
 Requires Docker Desktop.
 
-    git clone https://github.com/kduvur100/Baltimore_Sports_Scraper.git
-    cd Baltimore_Sports_Scraper
-    cp .env.example .env
-    docker-compose up --build
+```bash
+git clone https://github.com/kduvur100/Baltimore_Sports_Scraper.git
+cd Baltimore_Sports_Scraper
+cp .env.example .env
+docker-compose up --build
+```
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080
@@ -167,8 +164,9 @@ Query params for /api/articles: team=orioles|ravens, source=rss|gdelt, limit=20,
 
 ## Cleanup
 
-    docker-compose down -v    # stop containers + wipe DB data
-    make clean                # remove build artifacts
-    rm -rf frontend/node_modules
-    go clean -cache
-READMEEOF
+```bash
+docker-compose down -v    # stop containers + wipe DB data
+make clean                # remove build artifacts
+rm -rf frontend/node_modules
+go clean -cache
+```
